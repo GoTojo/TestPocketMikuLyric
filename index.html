@@ -4,7 +4,7 @@
 	<meta charset="utf-8"> 		
 	<meta　http-equiv="X-UA-Compatible" content="IE=edge"> 		
 	<meta name="viewport" content="width=device-width, initial-scale=1"> 		
-	<title>ポケミク てすと</title> 		
+	<title>ポケミク歌詞情報出力アプリ</title> 		
 	<link href="css/bootstrap.min.css" rel="stylesheet"> 		
 	<script src="js/nsx39.js"></script> 		
 	<script src="js/flatKeyboard.js"></script>
@@ -207,10 +207,11 @@
 		<p>
 			<div class="container">
 				<div class="page-header" >
-					<h2>ポケミクてすと</h2>
-					<div>
-						あらかじめ入力しておいた文字列をNoteOnが来るたびに一文字ずつ出力します。<br>
+					<div class="jumbotron">
+						<h2>ポケミク歌詞情報出力アプリ</h2>
+						あらかじめ入力しておいた文字列をNoteが来るたびに一文字ずつ出力します。<br>
 						MIDI InにNSX39を指定するとポケットミクのスタイラスで演奏することもできます(もちろん普通のMIDIキーボードでも可)<br>
+						SMFPlayerはCh0のNoteに文字を付加します。<br>
 						ブラウザはGoogle Chromeを使ってください。<br>
 						WebMIDIAPIを使うためにGoogle Chromeを設定する必要があります。詳しくは<a href="http://otonanokagaku.net/nsx39/app.html">ポケットミクアプリのページ</a>を参考にしてください。<br>
 						なお、flatkeyはryoyakawaiさんの<a href="https://github.com/ryoyakawai/WebMIDIAPIWrapper">Web MIDI API Wrapper</a>を使用しています。<br>
@@ -260,6 +261,28 @@
 			</p>
 			<hr>
 		</div>
+		<div class="container">
+			<div class="span4 well">
+					  <h4>SMFPlayer</h4>
+						<form>
+							<input type="file" id="filedialog" name="file" onchange="onSelectedFile()" accept="audio/mid"/>
+						</form>
+						<button type="button" class='btn btn-default' id="stop" onclick="stop()">
+							<span class="glyphicon glyphicon-stop"></span>
+						</button>
+						<!-- button type="button" id="pause" onclick="pause()">pause</button -->
+						<button type="button" class='btn btn-default' id="play" onclick="play()">
+							<span class="glyphicon glyphicon-play"></span>				
+						</button>
+						<button type="button" class='btn btn-default' id="allnoteoff" onclick="allnoteoff()">panic</button>
+			</div>
+			<p>
+			<div class="progress">
+  			<div class="progress-bar" id="progress"></div>
+			</div>		
+			</p>	
+		</div>
+		<hr>
 		<div class="container" style="width: 640px; margin:20px 0px 0px 55px;">
 			<div class="keyCanvasArea">
 				<canvas id="keyboard" height="0px"></canvas>
@@ -290,5 +313,6 @@
 		sysex : true
 	}).then(onMIDISuccess, onMIDIFailure);
 </script>
+<script src='js/smfplayer.js'></script>
 </body>
 </html>
