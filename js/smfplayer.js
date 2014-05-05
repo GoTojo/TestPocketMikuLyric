@@ -372,6 +372,15 @@ function getNext() {
 		}
 		songinfo.ptr = songinfo.offsetTop;
 		$('#progress').css('width',"0%");
+		var result=get1stChar();
+		if (result.result) {
+			tempbuf[wptr++]=0; // deltatime
+			tempbuf[wptr++]=result.message[0]; // F0
+			tempbuf[wptr++]=result.message.length-1;
+			for (var i=1;i<result.message.length;i++) {
+				tempbuf[wptr++]=result.message[i];
+			}
+		}
 		while (1) {
 			$('#progress').css('width',songinfo.ptr/smfinfo.tracksize*100+"%");
 			var lastptr=songinfo.ptr;
@@ -382,20 +391,29 @@ function getNext() {
 				}
 				break;
 			};
+			for (var ptr=lastptr;ptr<songinfo.ptr;ptr++) {
+				tempbuf[wptr++]=songinfo.buf[ptr];
+			}
 			if (message.type=="data") {
 				if ((message.message[0]=='0x80') || ((message.message[0]=='0x90')&&(message.message[2]=='0x00'))) {
 					var result=getChar();
 					if (result.result) {
-						for (var i=0;i<result.message.length;i++) {
+						tempbuf[wptr++]=0; // deltatime
+						tempbuf[wptr++]=result.message[0]; // F0
+						tempbuf[wptr++]=result.message.length-1;
+						for (var i=1;i<result.message.length;i++) {
 							tempbuf[wptr++]=result.message[i];
 						}
 					}
 				} 
 			}
-			for (var ptr=lastptr;ptr<songinfo.ptr;ptr++) {
-				tempbuf[wptr++]=songinfo.buf[ptr];
-			}
 		};
+		var offsetMTrkSize=(4+4+6)+4;
+		MTrkSize=wptr-offsetMTrkSize-4;
+		tempbuf[offsetMTrkSize]=(MTrkSize>>24)&0x0FF;
+		tempbuf[offsetMTrkSize+1]=(MTrkSize>>16)&0x0FF;
+		tempbuf[offsetMTrkSize+2]=(MTrkSize>>8)&0x0FF;
+		tempbuf[offsetMTrkSize+3]=(MTrkSize)&0x0FF;
 		var exportbuf=new Uint8Array(arraybuffer.slice(0,wptr));
 		exportFile(file.name, exportbuf);
 		//exportFile(file.name,songinfo.buf);

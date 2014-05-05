@@ -118,6 +118,7 @@
 	var curIndex;
 	var curChar = [];
 	var curStr = "";
+	var firstCharMessage=[];
 
 	function onClickConvert() {
 		var srcText = $("#inputLyrics").val();
@@ -136,11 +137,9 @@
 		//	return;
 		//}
 		lyrics = [];
-		curIndex = 0;
-		curChar = [];
 		var srcText = document.getElementById("inputLyrics").value;
 		lyrics = srcText.concat();
-		var result=getChar();
+		var result=get1stChar();
 		if (result.result) {
 			if (output) {
 				output.send(result.message);
@@ -182,6 +181,11 @@
 				updateLyrics();
 			}
 			output.send(noteMsg, timestamp);
+		}
+		function get1stChar() {
+			curIndex = 0;
+			curChar = [];
+			return getChar();
 		}
 		function getChar() {
 			var msg;
@@ -225,7 +229,7 @@
 								exported_filename = filename;
 							};
 							fileWriter.onerror = function(e) {
-								console.log('save error: ' + e.toString());
+								//console.log('save error: ' + e.toString());
 								alert("save error!");
 							};
 							var blobData = new Blob([buf]);
@@ -239,7 +243,7 @@
 			console.log ('GerFileError : ', arguments);
 		}
 		function onWriteError() {
-			console.log ('Error : ', arguments);
+			//console.log ('Error : ', arguments);
 			alert('save error!');
 		}
 		function deleteTemporaryFile() {
@@ -248,7 +252,7 @@
 				window.webkitRequestFileSystem(window.TEMPORARY, bytes, function(fs) {
 					fs.root.getFile(exported_filename, {create: true}, function(fileEntry) {
 						fileEntry.remove(function(){
-							console.log(exported_filename+"is deleted");
+							//console.log(exported_filename+"is deleted");
 							exported_filename = "";
     					});
 					});
@@ -385,13 +389,10 @@
 	</div><!-- /.modal-dialog -->
 </div><!-- /.modal -->
 <script type='text/javascript'>
-		$('#completeexport').on('hide.bs.modal', function () {
-			console.log("modal is hided")
-			deleteTemporaryFile();
-		});
-$('#completeexport').on('shown.bs.modal', function (e) {
-	console.log("modal is shown");
-});
+	$('#completeexport').on('hide.bs.modal', function () {
+		//console.log("modal is hided")
+		deleteTemporaryFile();
+	});
 $</script>
 </body>
 </html>
