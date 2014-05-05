@@ -9,6 +9,8 @@
 	<script src="js/nsx39.js"></script> 		
 	<script src="js/flatKeyboard.js"></script>
 	<script src="js/jquery-1.11.0.min.js"></script>
+	<script src="js/bootstrap.min.js"></script>
+	<script src='js/smfplayer.js'></script>
 
 	<script type="text/javascript">
 	var midiAccess = null;
@@ -129,16 +131,21 @@
 	}
 
 	function onClickOK() {
-		if (!output) {
-			alert("MIDI Outを指定してください");
-			return;
-		}
+		//if (!output) {
+		//	alert("MIDI Outを指定してください");
+		//	return;
+		//}
 		lyrics = [];
 		curIndex = 0;
 		curChar = [];
 		var srcText = document.getElementById("inputLyrics").value;
 		lyrics = srcText.concat();
-		sendChar(window.performance.now());
+		var result=getChar();
+		if (result.result) {
+			if (output) {
+				output.send(result.message);
+			}
+		}
 		updateLyrics();
 	}
 
@@ -168,13 +175,17 @@
 
 		function sendNoteandChar(noteMsg, timestamp) {
 			if (curIndex < lyrics.length) {
-				sendChar(timestamp);
+				var result=getChar();
+				if (result.result) {
+					output.send(result.message,timestamp);
+				}
 				updateLyrics();
 			}
 			output.send(noteMsg, timestamp);
 		}
-
-		function sendChar(timestamp) {
+		function getChar() {
+			var msg;
+			var result=false;
 			while (curIndex < lyrics.length) {
 				curChar = [];
 				curChar[0] = lyrics[curIndex++];
@@ -185,12 +196,13 @@
 				}
 				curStr = "";
 				for (i=0;i<curChar.length;i++) curStr += curChar[i];
-					var msg = nsx39.getSysEx(curStr);
-				if (msg && output) {
-					output.send(msg, timestamp);
+				msg = nsx39.getSysEx(curStr);
+				if (msg) {
+					result=true;
 					break;
 				}
 			}
+			return {result:result,message:msg};
 		}
 
 		function showMidiMsg(msg) {
@@ -199,6 +211,49 @@
 				str += "0x" + msg[i].toString(16) + " ";
 			}
 			console.log(str);
+		}
+		var exported_filename = "";
+		function exportFile(filename,buf) {
+			navigator.webkitTemporaryStorage.requestQuota(buf.length, function(bytes) {
+				window.webkitRequestFileSystem(window.TEMPORARY, bytes, function(fs) {
+					fs.root.getFile(file.name, {create: true, exclusive:false}, function(fileEntry) {
+						fileEntry.createWriter(function(fileWriter) {
+							fileWriter.onwriteend = function(e) {
+								var url="filesystem:http://localhost/temporary/"+filename;
+								$('#downloadlink').attr('href',url);
+								$('#completeexport').modal();
+								exported_filename = filename;
+							};
+							fileWriter.onerror = function(e) {
+								console.log('save error: ' + e.toString());
+								alert("save error!");
+							};
+							var blobData = new Blob([buf]);
+							fileWriter.write(blobData);
+						});
+ 					},onGetFileError);
+				});
+			},onWriteError);
+		};
+		function onGetFileError() {
+			console.log ('GerFileError : ', arguments);
+		}
+		function onWriteError() {
+			console.log ('Error : ', arguments);
+			alert('save error!');
+		}
+		function deleteTemporaryFile() {
+			if (exported_filename.length==0) return;
+			navigator.webkitTemporaryStorage.requestQuota(1024, function(bytes) {
+				window.webkitRequestFileSystem(window.TEMPORARY, bytes, function(fs) {
+					fs.root.getFile(exported_filename, {create: true}, function(fileEntry) {
+						fileEntry.remove(function(){
+							console.log(exported_filename+"is deleted");
+							exported_filename = "";
+    					});
+					});
+  				});
+			});			
 		}
 	</script>
 </head>
@@ -216,7 +271,7 @@
 						WebMIDIAPIを使うためにGoogle Chromeを設定する必要があります。詳しくは<a href="http://otonanokagaku.net/nsx39/app.html">ポケットミクアプリのページ</a>を参考にしてください。<br>
 						なお、flatkeyはryoyakawaiさんの<a href="https://github.com/ryoyakawai/WebMIDIAPIWrapper">Web MIDI API Wrapper</a>を使用しています。<br>
 						ミク語変換はaikeさんの<a hrer="http://aikelab.net/mikugo/">ミク語変換</a>を使わせていただきました。
-					</div>
+				</div>
 				</div>
 			</div>
 		</p>
@@ -275,6 +330,9 @@
 							<span class="glyphicon glyphicon-play"></span>				
 						</button>
 						<button type="button" class='btn btn-default' id="allnoteoff" onclick="allnoteoff()">panic</button>
+						<button type="button" class='btn btn-default' id="export" onclick="exportsmf()">
+							<span class="glyphicon glyphicon glyphicon-export">書き出し</span>
+						</button>
 			</div>
 			<p>
 			<div class="progress">
@@ -300,19 +358,40 @@
 		fKey.setConnected();
 		fKey.noteOn = function(noteNo) {
 			output.send([0x90, noteNo, 0x7f]);
-				//sendNoteandChar([0x90, noteNo, 0x00]);
-			};
-			fKey.noteOff = function(noteNo) {
-				var now = window.performance.now();
-				sendNoteandChar([0x80, noteNo, 0x00], now + 200);
-		//output.send([0x80, noteNo, 0x40], now + 200);
-	};
+			//sendNoteandChar([0x90, noteNo, 0x00]);
+		};
+		fKey.noteOff = function(noteNo) {
+			var now = window.performance.now();
+			sendNoteandChar([0x80, noteNo, 0x00], now + 200);
+			//output.send([0x80, noteNo, 0x40], now + 200);
+		};
 </script>
 <script  type="text/javascript">
 	midiAccess = navigator.requestMIDIAccess({
 		sysex : true
 	}).then(onMIDISuccess, onMIDIFailure);
 </script>
-<script src='js/smfplayer.js'></script>
+<div class="modal fade" id='completeexport'>
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-body">
+				<p>Complete!</p>
+				<a href="#" id="downloadlink">ダウンロード</a>
+			</div>
+			<div class="modal-footer">
+			<button type="button" class="btn btn-default" data-dismiss="modal">閉じる</button>
+			</div>
+		</div><!-- /.modal-content -->
+	</div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+<script type='text/javascript'>
+		$('#completeexport').on('hide.bs.modal', function () {
+			console.log("modal is hided")
+			deleteTemporaryFile();
+		});
+$('#completeexport').on('shown.bs.modal', function (e) {
+	console.log("modal is shown");
+});
+$</script>
 </body>
 </html>

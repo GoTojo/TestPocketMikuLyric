@@ -362,6 +362,44 @@ function getNext() {
 		doInterval();
 		playerinfo.timer = setInterval('doInterval()',playerinfo.buffer);
 	}
+	function exportsmf() {
+		if (!smfinfo.isValid) return;
+		var arraybuffer = new ArrayBuffer(1024*1024);
+		var tempbuf = new Uint8Array(arraybuffer);
+		var wptr=0;
+		for (var ptr=0;ptr<songinfo.offsetTop;ptr++) {
+			tempbuf[wptr++]=songinfo.buf[ptr];			
+		}
+		songinfo.ptr = songinfo.offsetTop;
+		$('#progress').css('width',"0%");
+		while (1) {
+			$('#progress').css('width',songinfo.ptr/smfinfo.tracksize*100+"%");
+			var lastptr=songinfo.ptr;
+			var message = getNext();
+			if (!message.result) {
+				for (var ptr=lastptr;ptr<songinfo.ptr;ptr++) {
+					tempbuf[wptr++]=songinfo.buf[ptr];
+				}
+				break;
+			};
+			if (message.type=="data") {
+				if ((message.message[0]=='0x80') || ((message.message[0]=='0x90')&&(message.message[2]=='0x00'))) {
+					var result=getChar();
+					if (result.result) {
+						for (var i=0;i<result.message.length;i++) {
+							tempbuf[wptr++]=result.message[i];
+						}
+					}
+				} 
+			}
+			for (var ptr=lastptr;ptr<songinfo.ptr;ptr++) {
+				tempbuf[wptr++]=songinfo.buf[ptr];
+			}
+		};
+		var exportbuf=new Uint8Array(arraybuffer.slice(0,wptr));
+		exportFile(file.name, exportbuf);
+		//exportFile(file.name,songinfo.buf);
+	}
 	function gettime(tick) {
 		var lastindex = playerinfo.tempo.length-1;
 		var starttick = playerinfo.tempo[lastindex].tickcount;
@@ -398,7 +436,6 @@ function getNext() {
 					} else {
 						output.send(message.message,timestamp);
 					}
-					//output.send(message.message,timestamp);
 				}
 			}
 			if (timestamp>targettime) break;
