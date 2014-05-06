@@ -223,7 +223,7 @@
 					fs.root.getFile(file.name, {create: true, exclusive:false}, function(fileEntry) {
 						fileEntry.createWriter(function(fileWriter) {
 							fileWriter.onwriteend = function(e) {
-								var url="filesystem:http://localhost/temporary/"+filename;
+								var url="filesystem:http://"+location.host+"/temporary/"+filename;
 								$('#downloadlink').attr('href',url);
 								$('#completeexport').modal();
 								exported_filename = filename;
