@@ -323,6 +323,7 @@
 		<div class="container">
 			<div class="span4 well">
 					  <h4>SMFPlayer</h4>
+					  	SMFのch0のノートに指定した歌詞の情報を付加して演奏します
 						<form>
 							<input type="file" id="filedialog" name="file" onchange="onSelectedFile()" accept="audio/mid"/>
 						</form>
@@ -334,6 +335,8 @@
 							<span class="glyphicon glyphicon-play"></span>				
 						</button>
 						<button type="button" class='btn btn-default' id="allnoteoff" onclick="allnoteoff()">panic</button>
+						<h4>SMF Export</h4>
+						SMFPlayerの演奏をSMFとして書き出します<br>
 						<button type="button" class='btn btn-default' id="export" onclick="exportsmf()">
 							<span class="glyphicon glyphicon glyphicon-export">書き出し</span>
 						</button>
