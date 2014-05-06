@@ -9,6 +9,7 @@
 		var playing;
 		var tempo;
 		var totaltick;
+		var nexteventtime;
 		var init;
 	};
 	playerinfo.init = function() {
@@ -18,6 +19,7 @@
 		playerinfo.nexttempo = -1;
 		playerinfo.playing = false;
 		playerinfo.totaltick = 0;
+		playerinfo.nexteventtime = 0;
 		playerinfo.tempo = [{time:0,tickcount:0,tempo:defaulttempo}];
 	};
 	playerinfo.init();
@@ -318,8 +320,8 @@ function getNext() {
 			console.log(str);		
 	}
 	function showData(timestamp,message) {
-		//var str = timestamp+":"
-		var str = "";
+		var str = timestamp+":"
+		//var str = "";
 		for (i=0;i<message.message.length;i++) str += ("0"+message.message[i].toString(16)).slice(-2)+" ";
 			console.log(str);
 		//document.getElementById("disparea")disparea.innerHTML += str+"<br>";
@@ -430,11 +432,13 @@ function getNext() {
 	}
 	function doInterval() {
 		var currenttime = window.performance.now();
-		var targettime = currenttime+playerinfo.buffer*2;
+		var targettime = currenttime+playerinfo.buffer;
+		//console.log("currenttime:"+currenttime+",targettime:"+targettime);
 		while (1) {
-			$('#progress').css('width',songinfo.ptr/smfinfo.tracksize*100+"%");
 			if (!playerinfo.playing) return;
+			if (songinfo.nexteventtime>=targettime) break;
 			var message = getNext();
+			$('#progress').css('width',songinfo.ptr/smfinfo.tracksize*100+"%");
 			if (!message.result) {
 				playerinfo.playing = false;
 				pause();
@@ -456,6 +460,9 @@ function getNext() {
 					}
 				}
 			}
-			if (timestamp>targettime) break;
+			if (timestamp>targettime) {
+				songinfo.nexteventtime = timestamp;
+				break;
+			}
 		};
 	}
