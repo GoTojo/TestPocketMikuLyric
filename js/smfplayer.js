@@ -374,13 +374,15 @@ function getNext() {
 		}
 		songinfo.ptr = songinfo.offsetTop;
 		$('#progress').css('width',"0%");
-		var result=get1stChar();
-		if (result.result) {
-			tempbuf[wptr++]=0; // deltatime
-			tempbuf[wptr++]=result.message[0]; // F0
-			tempbuf[wptr++]=result.message.length-1;
-			for (var i=1;i<result.message.length;i++) {
-				tempbuf[wptr++]=result.message[i];
+		if (!prevmode) {
+			var result=get1stChar();
+			if (result.result) {
+				tempbuf[wptr++]=0; // deltatime
+				tempbuf[wptr++]=result.message[0]; // F0
+				tempbuf[wptr++]=result.message.length-1;
+				for (var i=1;i<result.message.length;i++) {
+					tempbuf[wptr++]=result.message[i];
+				}
 			}
 		}
 		while (1) {
@@ -393,21 +395,40 @@ function getNext() {
 				}
 				break;
 			};
-			for (var ptr=lastptr;ptr<songinfo.ptr;ptr++) {
-				tempbuf[wptr++]=songinfo.buf[ptr];
-			}
-			if (message.type=="data") {
-				if ((message.message[0]=='0x80') || ((message.message[0]=='0x90')&&(message.message[2]=='0x00'))) {
-					var result=getChar();
-					if (result.result) {
-						tempbuf[wptr++]=0; // deltatime
-						tempbuf[wptr++]=result.message[0]; // F0
-						tempbuf[wptr++]=result.message.length-1;
-						for (var i=1;i<result.message.length;i++) {
-							tempbuf[wptr++]=result.message[i];
+			if (!prevmode) {
+				for (var ptr=lastptr;ptr<songinfo.ptr;ptr++) {
+					tempbuf[wptr++]=songinfo.buf[ptr];
+				}
+				if (message.type=="data") {
+					if ((message.message[0]=='0x80') || ((message.message[0]=='0x90')&&(message.message[2]=='0x00'))) {
+						var result=getChar();
+						if (result.result) {
+							tempbuf[wptr++]=0; // deltatime
+							tempbuf[wptr++]=result.message[0]; // F0
+							tempbuf[wptr++]=result.message.length-1;
+							for (var i=1;i<result.message.length;i++) {
+								tempbuf[wptr++]=result.message[i];
+							}
 						}
-					}
-				} 
+					} 
+				}
+			} else {
+				if (message.type=="data") {
+					if ((message.message[0]=='0x90')&&(message.message[2]!='0x00')) {
+						var result=getChar();
+						if (result.result) {
+							tempbuf[wptr++]=0; // deltatime
+							tempbuf[wptr++]=result.message[0]; // F0
+							tempbuf[wptr++]=result.message.length-1;
+							for (var i=1;i<result.message.length;i++) {
+								tempbuf[wptr++]=result.message[i];
+							}
+						}
+					} 
+				}
+				for (var ptr=lastptr;ptr<songinfo.ptr;ptr++) {
+					tempbuf[wptr++]=songinfo.buf[ptr];
+				}				
 			}
 		};
 		var offsetMTrkSize=(4+4+6)+4;
@@ -454,9 +475,11 @@ function getNext() {
 			if (message.type=="data") {
 				if (output) {
 					if ((message.message[0]=='0x80') || ((message.message[0]=='0x90')&&(message.message[2]=='0x00'))) {
-						sendNoteandChar(message.message,timestamp);
+						if (prevmode) { output.send(message.message,timestamp); }
+						else { sendNoteandChar(message.message,timestamp); }
 					} else {
-						output.send(message.message,timestamp);
+						if (prevmode) { sendNoteandChar(message.message,timestamp); }
+						else { output.send(message.message,timestamp); }
 					}
 				}
 			}

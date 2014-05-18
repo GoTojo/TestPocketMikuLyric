@@ -13,6 +13,7 @@
 	<script src='js/smfplayer.js'></script>
 
 	<script type="text/javascript">
+	var prevmode=false;
 	var midiAccess = null;
 	var output = null;
 	window.addEventListener("message", webMidiLinkRecv, false);
@@ -23,15 +24,17 @@
 	        	var data=parseInt(msg[2], 16);
 	            switch (parseInt(msg[1], 16) & 0xf0) {
 	                case 0x80:
-						sendNoteandChar([0x80, data, 0x40], now + 200);
+	                	if (prevmode) {output.send([0x80, data, 0x40]);}
+						else {sendNoteandChar([0x80, data, 0x40], window.performance.now());}
 	                    break;
 	                case 0x90:
 	                    var velo = parseInt(msg[3], 16);
 	                    if (velo > 0) {
-							output.send([0x90, data, velo]);
+	                    	if (prevmode) {sendNoteandChar([0x90, data, velo], window.performance.now());}
+							else {output.send([0x90, data, velo]);}
 	                    } else {
-							var now = window.performance.now();
-							sendNoteandChar([0x80, data, 0x40], now + 200);
+							if (prevmode) {output.send([0x80, data, 0x40]);}
+							else {sendNoteandChar([0x80, data, 0x40], window.performance.now());}
 	                 	}
 	                   break;
 	                case 0xb0:
@@ -47,9 +50,11 @@
 		console.log("Receive midi" + event);
 		if (output) {
 			if ((event.data[0]=='0x80') || ((event.data[0]=='0x90')&&(event.data[2]=='0x00'))) {
-				sendNoteandChar(event.data, window.performance.now());
+				if (prevmode) { output.send(event.data); }
+				else {sendNoteandChar(event.data, window.performance.now());}
 			} else {
-				output.send(event.data, window.performance.now());
+				if (prevmode) {sendNoteandChar(event.data, window.performance.now());}
+				else {output.send(event.data);}
 			}
 		}
 	}
@@ -139,11 +144,18 @@
 		lyrics = [];
 		var srcText = document.getElementById("inputLyrics").value;
 		lyrics = srcText.concat();
-		var result=get1stChar();
-		if (result.result) {
-			if (output) {
-				output.send(result.message);
+		if (!prevmode) {
+			var result=get1stChar();
+			if (result.result) {
+				if (output) {
+					output.send(result.message);
+				}
 			}
+		} else {
+			curIndex = 0;
+			curChar = [];
+			curStr = "";
+
 		}
 		updateLyrics();
 	}
@@ -173,6 +185,7 @@
 		}
 
 		function sendNoteandChar(noteMsg, timestamp) {
+			if (!prevmode) output.send(noteMsg, timestamp);
 			if (curIndex < lyrics.length) {
 				var result=getChar();
 				if (result.result) {
@@ -180,11 +193,12 @@
 				}
 				updateLyrics();
 			}
-			output.send(noteMsg, timestamp);
+			if (prevmode) output.send(noteMsg, timestamp);
 		}
 		function get1stChar() {
 			curIndex = 0;
 			curChar = [];
+			curStr = "";
 			return getChar();
 		}
 		function getChar() {
@@ -340,6 +354,15 @@
 						<button type="button" class='btn btn-default' id="export" onclick="exportsmf()">
 							<span class="glyphicon glyphicon glyphicon-export">書き出し</span>
 						</button>
+						<!--
+						<h4>モード</h4>
+						<div class="radio-inline" id='sysexmode'>
+							<label><input type="radio" name="sysexmode" value="pre">発音の前に追加</label>
+						</div>
+						<div class="radio-inline">
+							<label><input type="radio" name="sysexmode" value="post" checked>消音後すぐに追加</label>
+						</div>
+						-->
 			</div>
 			<p>
 			<div class="progress">
@@ -364,13 +387,13 @@
 		}, 80);
 		fKey.setConnected();
 		fKey.noteOn = function(noteNo) {
-			output.send([0x90, noteNo, 0x7f]);
-			//sendNoteandChar([0x90, noteNo, 0x00]);
+			if (prevmode) { sendNoteandChar([0x90, noteNo, 0x00], window.performance.now()); }
+			else { output.send([0x90, noteNo, 0x7f]); }
 		};
 		fKey.noteOff = function(noteNo) {
 			var now = window.performance.now();
-			sendNoteandChar([0x80, noteNo, 0x00], now + 200);
-			//output.send([0x80, noteNo, 0x40], now + 200);
+			if (prevmode) { output.send([0x80, noteNo, 0x40], now + 200); }
+			else { sendNoteandChar([0x80, noteNo, 0x00], now + 200); }
 		};
 </script>
 <script  type="text/javascript">
@@ -396,6 +419,10 @@
 		//console.log("modal is hided")
 		deleteTemporaryFile();
 	});
-$</script>
+	$('*[name="sysexmode"]').bind('change',function() {
+		prevmode=($('*[name="sysexmode"]:checked').val()=='pre');
+	});
+
+</script>
 </body>
 </html>
